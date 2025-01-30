@@ -1,4 +1,4 @@
-import React, { useState, useContext,useEffect } from 'react';
+import React, { useState, useContext,useEffect,useCallback } from 'react';
 import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, ImageRun, TextRun } from "docx";
 import MCQ from "./Mcq";
@@ -44,7 +44,7 @@ window.addEventListener('resize', checkScreenWidth);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [includeParagraph, setIncludeParagraph] = useState(false);
   const [includeSolution, setIncludeSolution] = useState(true);
-  
+  const[components,setComponents]=useState([]);
   const toggleInstructionsPage = () => {
     setIsInstructionsPage(!isInstructionsPage);
   };
@@ -52,7 +52,11 @@ window.addEventListener('resize', checkScreenWidth);
   const toggleSidebar = () => {
     setIsSidebarOpen((prevState) => !prevState);
   };
-
+  const addComponent = (type) => {
+    if (!components.includes(type)) {
+      setComponents((prev) => [...prev, type]);
+    }
+  }; 
   const handlePositiveChange = (e) => {
     setPositiveMarks(e.target.value);
   };
@@ -87,101 +91,7 @@ window.addEventListener('resize', checkScreenWidth);
   };
  
   
-  const renderQuestion = () => {
-    
-    switch (selectedQuestionType) {
-      case "Mcq":
-        return (
-          <div>
-          <MCQ
-          
-            indexCount={indexCount}
-            handlePaste={handlePaste}
-            processImage={processImage}
-            handleOptionPaste={handleOptionPaste}
-            handleRemoveImage={handleRemoveImage}
-            removeQuestion={removeQuestion}
-            includeParagraph={includeParagraph}
-            includeSolution={includeSolution}
-            addOptionE={addOptionE}
-            handleSave={handleSave}
-          />
-          {includeParagraph && <ParagraphCreation includeSolution={includeSolution}/>}
-      </div>
-        );
-        
-      case "Msq":
-        return (
-          <div>
-              <MSQ
-           
-           indexCount={indexCount}
-           handlePaste={handlePaste}
-           processImage={processImage}
-           handleOptionPaste={handleOptionPaste}
-           handleRemoveImage={handleRemoveImage}
-           removeQuestion={removeQuestion}
-           includeParagraph={includeParagraph}
-           includeSolution={includeSolution}
-           addOptionE={addOptionE}
-           handleSave={handleSave}
-         />
-         {includeParagraph && <Paragraph/>}
-          </div>
-        
-        );
-      case "Nit":
-        return (
-          <NIT
-           
-            indexCount={indexCount}
-           
-            handlePaste={handlePaste}
-            processImage={processImage}
-            handleOptionPaste={handleOptionPaste}
-            handleRemoveImage={handleRemoveImage}
-            removeQuestion={removeQuestion}
-            includeParagraph={includeParagraph}
-            includeSolution={includeSolution}
-            addOptionE={addOptionE}
-            handleSave={handleSave}
-          />
-        );
-      case "True":
-        return (
-          <True
-           
-            indexCount={indexCount}
-            handlePaste={handlePaste}
-            processImage={processImage}
-            handleOptionPaste={handleOptionPaste}
-            handleRemoveImage={handleRemoveImage}
-            removeQuestion={removeQuestion}
-            includeParagraph={includeParagraph}
-            includeSolution={includeSolution}
-            addOptionE={addOptionE}
-            handleSave={handleSave}
-          />
-        );
-      case "Assertion":
-        return (
-          <Assertion
-            indexCount={indexCount}
-            handlePaste={handlePaste}
-            processImage={processImage}
-            handleOptionPaste={handleOptionPaste}
-            handleRemoveImage={handleRemoveImage}
-            removeQuestion={removeQuestion}
-            includeParagraph={includeParagraph}
-            includeSolution={includeSolution}
-            addOptionE={addOptionE}
-            handleSave={handleSave}
-          />
-        );
-      default:
-        return null;
-    }
-  }
+ 
   const addQuestion = () => {
     const newQuestion = {
       assertionImage: null,
@@ -201,8 +111,10 @@ window.addEventListener('resize', checkScreenWidth);
     };
   
     setQuestions([...Questions, newQuestion]);
+    addComponent(selectedQuestionType); // Add the new question type to the components state
     incrementCounter()
     console.log(Questions)
+    console.log(components)
   };
 
   const processImage = (imageData, maxWidth, maxHeight) => {
@@ -318,6 +230,11 @@ window.addEventListener('resize', checkScreenWidth);
   };
   
   const handleSave = async () => {
+    if (documentContent.length > 0) {
+      // If documentContent already exists, do not create a new one
+      return;
+    }
+  
     let sortid = 1;
     let paragraphSortid = 1;
     let questionSortid = 1;
@@ -335,242 +252,303 @@ window.addEventListener('resize', checkScreenWidth);
     const SPACING_AFTER_QUESTION = 400;
     const SPACING_AFTER_OPTION = 200;
     const SPACING_BEFORE_IMAGE = 100;
-   
-
+  
     const processImageHelper = async (image, maxWidth, maxHeight) => {
-        return image ? await processImage(image, maxWidth, maxHeight) : null;
+      return image ? await processImage(image, maxWidth, maxHeight) : null;
     };
-
+  
     const processQuestions = async (questions) => {
-        const clonedQuestions = JSON.parse(JSON.stringify(questions));
-        for (let index = 0; index < clonedQuestions.length; index++) {
-            const question = clonedQuestions[index];
-            const questionImageTransform = await processImageHelper(question.questionImage, questionMaxWidth, questionMaxHeight);
-            const solutionImageTransform = await processImageHelper(question.solutionImage, questionMaxWidth, questionMaxHeight);
-            const assertionImageTransform = await processImageHelper(question.assertionImage, assertionMaxWidth, assertionMaxHeight);
-            const reasonImageTransform = await processImageHelper(question.reasonImage, reasonMaxWidth, reasonMaxHeight);
-
-            console.log(`Processing question ${index + 1}`);
-            console.log(`Assertion Image: ${question.assertionImage}`);
-            console.log(`Reason Image: ${question.reasonImage}`);
-
-            const questionTextRun = question.questionImage
-                ? new ImageRun({ data: question.questionImage.split(",")[1], transformation: questionImageTransform })
-                : new TextRun(question.questionText || "");
-
-            const questionParagraph = new Paragraph({
+      const clonedQuestions = JSON.parse(JSON.stringify(Questions));
+      for (let index = 0; index < clonedQuestions.length; index++) {
+        const question = clonedQuestions[index];
+        const questionImageTransform = await processImageHelper(question.questionImage, questionMaxWidth, questionMaxHeight);
+        const solutionImageTransform = await processImageHelper(question.solutionImage, questionMaxWidth, questionMaxHeight);
+        const assertionImageTransform = await processImageHelper(question.assertionImage, assertionMaxWidth, assertionMaxHeight);
+        const reasonImageTransform = await processImageHelper(question.reasonImage, reasonMaxWidth, reasonMaxHeight);
+  
+        console.log(`Processing question ${index + 1}`);
+        console.log(`Assertion Image: ${question.assertionImage}`);
+        console.log(`Reason Image: ${question.reasonImage}`);
+  
+        const questionTextRun = question.questionImage
+          ? new ImageRun({ data: question.questionImage.split(",")[1], transformation: questionImageTransform })
+          : new TextRun(question.questionText || "");
+  
+        const questionParagraph = new Paragraph({
+          children: [
+            new TextRun({ text: `[Q${index + 1}] `, bold: true }), // Embed question number
+            questionTextRun
+          ],
+          spacing: { after: SPACING_AFTER_QUESTION },
+          keepLines: true,
+        });
+  
+        const optionParagraphs = [];
+  
+        if (question.type === 'True') {
+          optionParagraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: "(a)", bold: true }), new TextRun(" True")],
+              spacing: { after: SPACING_AFTER_OPTION },
+              keepLines: true,
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: "(b)", bold: true }), new TextRun(" False")],
+              spacing: { after: SPACING_AFTER_OPTION },
+              keepLines: true,
+            })
+          );
+        } else if (question.options.length > 0 && question.type !== "Nit") {
+          for (let i = 0; i < question.options.length; i++) {
+            const option = question.options[i];
+            const label = `(${String.fromCharCode(97 + i)}) `;
+            const optionTransform = await processImageHelper(option.image, optionMaxWidth, optionMaxHeight);
+  
+            optionParagraphs.push(
+              new Paragraph({
                 children: [
-                    new TextRun({ text: `[Q${index + 1}] `, bold: true }), // Embed question number
-                    questionTextRun
+                  new TextRun({ text: label, bold: true }),
+                  option.image
+                    ? new ImageRun({ data: option.image.split(",")[1], transformation: optionTransform })
+                    : new TextRun(option.text),
                 ],
-                spacing: { after: SPACING_AFTER_QUESTION },
+                spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
                 keepLines: true,
-            });
-
-            const optionParagraphs = [];
-
-            if (question.type === 'True') {
-                optionParagraphs.push(
-                    new Paragraph({
-                        children: [new TextRun({ text: "(a)", bold: true }), new TextRun(" True")],
-                        spacing: { after: SPACING_AFTER_OPTION },
-                        keepLines: true,
-                    }),
-                    new Paragraph({
-                        children: [new TextRun({ text: "(b)", bold: true }), new TextRun(" False")],
-                        spacing: { after: SPACING_AFTER_OPTION },
-                        keepLines: true,
-                    })
-                );
-            } else if (question.options.length > 0 && question.type !== "Nit") {
-                for (let i = 0; i < question.options.length; i++) {
-                    const option = question.options[i];
-                    const label = `(${String.fromCharCode(97 + i)}) `;
-                    const optionTransform = await processImageHelper(option.image, optionMaxWidth, optionMaxHeight);
-
-                    optionParagraphs.push(
-                        new Paragraph({
-                            children: [
-                                new TextRun({ text: label, bold: true }),
-                                option.image
-                                    ? new ImageRun({ data: option.image.split(",")[1], transformation: optionTransform })
-                                    : new TextRun(option.text),
-                            ],
-                            spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
-                            keepLines: true,
-                        })
-                    );
-                }
-            }
-
-            let solutionParagraph = null;
-            if (question.options.length > 0 && question.solutionImage) {
-                solutionParagraph = new Paragraph({
-                    children: [
-                        new TextRun({ text: "[soln] ", bold: true }),
-                        new ImageRun({ data: question.solutionImage.split(",")[1], transformation: solutionImageTransform }),
-                    ],
-                    spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
-                    keepLines: true,
-                });
-            }
-
-            let assertionParagraph = null;
-            if (question.assertionImage) {
-                assertionParagraph = new Paragraph({
-                    children: [
-                        new TextRun({ text: "[assertion] ", bold: true }),
-                        new ImageRun({ data: question.assertionImage.split(",")[1], transformation: assertionImageTransform }),
-                    ],
-                    spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
-                    keepLines: true,
-                });
-            }
-
-            let reasonParagraph = null;
-            if (question.reasonImage) {
-                reasonParagraph = new Paragraph({
-                    children: [
-                        new TextRun({ text: "[reason] ", bold: true }),
-                        new ImageRun({ data: question.reasonImage.split(",")[1], transformation: reasonImageTransform }),
-                    ],
-                    spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
-                    keepLines: true,
-                });
-            }
-
-            const questionSection = {
-                children: [
-                    questionParagraph,
-                    ...optionParagraphs,
-                    new Paragraph(`[qtype] ${question.type.toUpperCase()}`, { keepLines: true }),
-                    new Paragraph({ text: `[ans] ${question.answer}`, bold: true, keepLines: true }),
-                    new Paragraph(`[Marks] [${positiveMarks || 0}, ${negativeMarks || 0}]`, { keepLines: true }),
-                    solutionParagraph,
-                    assertionParagraph,
-                    reasonParagraph,
-                    new Paragraph(`[sortid] ${sortid++}`, { keepLines: true }),
-                    new Paragraph({ text: "", spacing: { after: SPACING_AFTER_QUESTION }, keepLines: true }),
-                ].filter(Boolean),
-                properties: { pageBreakBefore: true },
-            };
-
-            docSections.push(questionSection);
+              })
+            );
+          }
         }
+  
+        let solutionParagraph = null;
+        if (question.options.length > 0 && question.solutionImage) {
+          solutionParagraph = new Paragraph({
+            children: [
+              new TextRun({ text: "[soln] ", bold: true }),
+              new ImageRun({ data: question.solutionImage.split(",")[1], transformation: solutionImageTransform }),
+            ],
+            spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
+            keepLines: true,
+          });
+        }
+  
+        let assertionParagraph = null;
+        if (question.assertionImage) {
+          assertionParagraph = new Paragraph({
+            children: [
+              new TextRun({ text: "[assertion] ", bold: true }),
+              new ImageRun({ data: question.assertionImage.split(",")[1], transformation: assertionImageTransform }),
+            ],
+            spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
+            keepLines: true,
+          });
+        }
+  
+        let reasonParagraph = null;
+        if (question.reasonImage) {
+          reasonParagraph = new Paragraph({
+            children: [
+              new TextRun({ text: "[reason] ", bold: true }),
+              new ImageRun({ data: question.reasonImage.split(",")[1], transformation: reasonImageTransform }),
+            ],
+            spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
+            keepLines: true,
+          });
+        }
+  
+        const questionSection = {
+          children: [
+            questionParagraph,
+            ...optionParagraphs,
+            new Paragraph(`[qtype] ${question.type.toUpperCase()}`, { keepLines: true }),
+            new Paragraph({ text: `[ans] ${question.answer}`, bold: true, keepLines: true }),
+            new Paragraph(`[Marks] [${positiveMarks || 0}, ${negativeMarks || 0}]`, { keepLines: true }),
+            solutionParagraph,
+            assertionParagraph,
+            reasonParagraph,
+            new Paragraph(`[sortid] ${sortid++}`, { keepLines: true }),
+            new Paragraph({ text: "", spacing: { after: SPACING_AFTER_QUESTION }, keepLines: true }),
+          ].filter(Boolean),
+          properties: { pageBreakBefore: true },
+        };
+  
+        // Check if the questionSection already exists in docSections
+        if (!docSections.find((section) => section.children[0].children[0].text === questionSection.children[0].children[0].text)) {
+          docSections.push(questionSection);
+        }
+      }
     };
-
-    await processQuestions(mcqQuestions);
-    await processQuestions(msqQuestions);
-    await processQuestions(nitQuestions);
-    await processQuestions(trueQuestions);
-    await processQuestions(assertionQuestions);
-
-    docSections.push({
+  
+    try {
+      await processQuestions(mcqQuestions);
+      await processQuestions(msqQuestions);
+      await processQuestions(nitQuestions);
+      await processQuestions(trueQuestions);
+      await processQuestions(assertionQuestions);
+  
+      docSections.push({
         children: [new Paragraph({ text: "[QQ]", pageBreakBefore: true })],
         spacing: { after: SPACING_AFTER_QUESTION },
-    });
-
-    // Process Paragraphs
-    for (let i = 0; i < Paragraphs.length; i++) {
+      });
+  
+      // Process Paragraphs
+      for (let i = 0; i < Paragraphs.length; i++) {
         const paragraph = Paragraphs[i];
         const paragraphImageTransform = await processImageHelper(paragraph.paragraphImage, maxImageWidth, maxImageHeight);
         const paragraphSolutionImageTransform = await processImageHelper(paragraph.paragraphSolutionImage, maxImageWidth, maxImageHeight);
         const paragraphQuestionImageTransform = await processImageHelper(paragraph.paraquestionImage, maxImageWidth, maxImageHeight);
-
+  
         const questionOptionsParagraphs = [];
         if (paragraph.questionType === "truefalse") {
-            questionOptionsParagraphs.push(
-                new Paragraph({
-                    children: [new TextRun({ text: "(a) True", bold: true })],
-                    spacing: { after: SPACING_AFTER_OPTION },
-                    keepLines: true,
-                }),
-                new Paragraph({
-                    children: [new TextRun({ text: "(b) False", bold: true })],
-                    spacing: { after: SPACING_AFTER_OPTION },
-                    keepLines: true,
-                })
-            );
+          questionOptionsParagraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: "(a) True", bold: true })],
+              spacing: { after: SPACING_AFTER_OPTION },
+              keepLines: true,
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: "(b) False", bold: true })],
+              spacing: { after: SPACING_AFTER_OPTION },
+              keepLines: true,
+            })
+          );
         } else if (paragraph.questionType !== "nit") {
-            for (let j = 0; j < paragraph.paraOptions.length; j++) {
-                const option = paragraph.paraOptions[j];
-                const optionTransform = await processImageHelper(option.image, maxImageWidth, maxImageHeight);
-
-                questionOptionsParagraphs.push(
-                    new Paragraph({
-                        children: [
-                            new TextRun({ text: `(${String.fromCharCode(97 + j)}) `, bold: true }),
-                            option.image
-                                ? new ImageRun({ data: option.image.split(",")[1], transformation: optionTransform })
-                                : new TextRun("No image"),
-                        ],
-                        spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
-                        keepLines: true,
-                    })
-                );
-            }
+          for (let j = 0; j < paragraph.paraOptions.length; j++) {
+            const option = paragraph.paraOptions[j];
+            const optionTransform = await processImageHelper(option.image, maxImageWidth, maxImageHeight);
+  
+            questionOptionsParagraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({ text: `(${String.fromCharCode(97 + j)}) `, bold: true }),
+                  option.image
+                    ? new ImageRun({ data: option.image.split(",")[1], transformation: optionTransform })
+                    : new TextRun("No image"),
+                ],
+                spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_OPTION },
+                keepLines: true,
+              })
+            );
+          }
         }
-
+  
         const paragraphSection = {
-            children: [
-                new Paragraph({ children: [new TextRun({ text: `[p sortid]: ${paragraphSortid}`, bold: true })], keepLines: true }),
-                new Paragraph({ children: [new TextRun({ text: `[qtype]: ${paragraph.questionType}`, bold: true })], keepLines: true }),
-                paragraph.paraquestionImage ? new Paragraph({
-                    children: [
-                        new TextRun({ text: "[pq image]: ", bold: true }),
-                        new ImageRun({ data: paragraph.paraquestionImage.split(",")[1], transformation: paragraphQuestionImageTransform }),
-                    ],
-                    spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_QUESTION },
-                    keepLines: true,
-                }) : null,
-                paragraph.paragraphImage ? new Paragraph({
-                  children: [
-                      new TextRun({ text: "[p image]: ", bold: true }),
-                      new ImageRun({ data: paragraph.paragraphImage.split(",")[1], transformation: paragraphImageTransform }),
-                  ],
-                  spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_QUESTION },
-                  keepLines: true,
-              }) : null,
-              paragraph.paragraphSolutionImage ? new Paragraph({
-                  children: [
-                      new TextRun({ text: "[p soln]: ", bold: true }),
-                      new ImageRun({ data: paragraph.paragraphSolutionImage.split(",")[1], transformation: paragraphSolutionImageTransform }),
-                  ],
-                  spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_QUESTION },
-                  keepLines: true,
-              }) : null,
-              new Paragraph({ children: [new TextRun({ text: "[ans] ", bold: true }), new TextRun(paragraph.paraanswers || "No answer provided")], keepLines: true }),
-              ...questionOptionsParagraphs,
-              new Paragraph(`[sortid] ${questionSortid++}`, { keepLines: true }),
-              new Paragraph({ text: "", spacing: { after: SPACING_AFTER_QUESTION }, keepLines: true }),
+          children: [
+            new Paragraph({ children: [new TextRun({ text: `[p sortid]: ${paragraphSortid}`, bold: true })], keepLines: true }),
+            new Paragraph({ children: [new TextRun({ text: `[qtype]: ${paragraph.questionType}`, bold: true })], keepLines: true }),
+            paragraph.paraquestionImage ? new Paragraph({
+              children: [
+                new TextRun({ text: "[pq image]: ", bold: true }),
+                new ImageRun({ data: paragraph.paraquestionImage.split(",")[1], transformation: paragraphQuestionImageTransform }),
+              ],
+              spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_QUESTION },
+              keepLines: true,
+            }) : null,
+            paragraph.paragraphImage ? new Paragraph({
+              children: [
+                new TextRun({ text: "[p image]: ", bold: true }),
+                new ImageRun({ data: paragraph.paragraphImage.split(",")[1], transformation: paragraphImageTransform }),
+              ],
+              spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_QUESTION },
+              keepLines: true,
+            }) : null,
+            paragraph.paragraphSolutionImage ? new Paragraph({
+              children: [
+                new TextRun({ text: "[p soln]: ", bold: true }),
+                new ImageRun({ data: paragraph.paragraphSolutionImage.split(",")[1], transformation: paragraphSolutionImageTransform }),
+              ],
+              spacing: { before: SPACING_BEFORE_IMAGE, after: SPACING_AFTER_QUESTION },
+              keepLines: true,
+            }) : null,
+            new Paragraph({ children: [new TextRun({ text: "[ans] ", bold: true }), new TextRun(paragraph.paraanswers || "No answer provided")], keepLines: true }),
+            ...questionOptionsParagraphs,
+            new Paragraph(`[sortid] ${questionSortid++}`, { keepLines: true }),
+            new Paragraph({ text: "", spacing: { after: SPACING_AFTER_QUESTION }, keepLines: true }),
           ].filter(Boolean),
           properties: { pageBreakBefore: true },
-      };
-
-      docSections.push(paragraphSection);
-      paragraphSortid++;
-  }
-
-  docSections.push({
-      children: [new Paragraph({ text: "[QQ]", pageBreakBefore: true })],
-      spacing: { after: SPACING_AFTER_QUESTION },
-  });
-
-  const doc = new Document({ sections: docSections });
-
-  try {
-      const blob = await Packer.toBlob(doc);
-      const arrayBuffer = await blob.arrayBuffer();
-      setDocumentContent(arrayBuffer);
-      setShowModal(true);
-  } catch (error) {
-      console.error("Error creating the document:", error);
-  }
-  console.log(Paragraphs)
-}; 
+        };
+  
+        // Check if the paragraphSection already exists in docSections
+        if (questionSection.children && questionSection.children[0] && questionSection.children[0].children && questionSection.children[0].children[0] && questionSection.children[0].children[0].text) {
+          if (!docSections.find((section) => section.children?.[0]?.children?.[0]?.text === questionSection.children[0].children[0].text)) {
+            docSections.push(questionSection);
+          }
+        }
+      }
+  
+      docSections.push({
+        children: [new Paragraph({ text: "[QQ]", pageBreakBefore: true })],
+        spacing: { after: SPACING_AFTER_QUESTION },
+      });
+  
+      const doc = new Document({ sections: docSections });
+  
+      try {
+        const blob = await Packer.toBlob(doc);
+        const arrayBuffer = await blob.arrayBuffer();
+        setDocumentContent(arrayBuffer);
+        setShowModal(true);
+      } catch (error) {
+        console.error("Error creating the document:", error);
+      }
+    } catch (error) {
+      console.error("Error processing questions:", error);
+    }
+  }; 
   const handleEdit = () => {
     setShowModal(false);
 };
+const combinedHandler = (e) => {
+  const type = e.target.value;
+  if (type) {
+    setComponents((prev) => [...prev, type]);
+
+    setSelectedQuestionType(type);
+    handleQuestionClick(e);
+  }
+};
+const componentsMap = {
+  Mcq: MCQ,
+  Msq: MSQ,
+  Nit: NIT,
+  True: True,
+  Assertion: Assertion,
+};
+const memoizedRenderComponent = useCallback((component, index) => {
+  const Component = componentsMap[component];
+  if (Component) {
+    return (
+      <div key={index}>
+        <Component
+          indexCount={indexCount}
+          handlePaste={handlePaste}
+          processImage={processImage}
+          handleOptionPaste={handleOptionPaste}
+          handleRemoveImage={handleRemoveImage}
+          removeQuestion={removeQuestion}
+          includeParagraph={includeParagraph}
+          includeSolution={includeSolution}
+          addOptionE={addOptionE}
+          handleSave={handleSave}
+        />
+        {includeParagraph && (
+          <ParagraphCreation includeSolution={includeSolution} />
+        )}
+      </div>
+    );
+  }
+  return null;
+}, [
+  indexCount,
+  handlePaste,
+  processImage,
+  handleOptionPaste,
+  handleRemoveImage,
+  removeQuestion,
+  includeParagraph,
+  includeSolution,
+  addOptionE,
+  handleSave,
+]);
   return (
     <div className="container">
       <button onClick={toggleSidebar} className="sidebar-toggle">
@@ -581,7 +559,7 @@ window.addEventListener('resize', checkScreenWidth);
         <button onClick={toggleInstructionsPage} className="instructions-btn">
           {isInstructionsPage ? 'Close Instructions' : 'Instructions'}
         </button>
-        <select onChange={handleQuestionClick} value={selectedQuestionType}>
+        <select  onChange={combinedHandler} value={selectedQuestionType}>
           <option value="Mcq">MCQ</option>
           <option value="Msq">MSQ</option>
           <option value="Nit">NIT</option>
@@ -636,7 +614,7 @@ window.addEventListener('resize', checkScreenWidth);
         ) : (
           <>
             <div>
-            {renderQuestion()}
+            {components.map((component, index) => memoizedRenderComponent(component, index))}
             </div>
             <button
               style={{ display: "block" }}

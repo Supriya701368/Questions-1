@@ -3,6 +3,7 @@ import './Questions.css'; // Import the CSS file
 import { QuestionsContext } from './QuestionsContext';
 
 const MCQ = ({
+  indexCount,
   handleOptionPaste,
   handlePaste,
   handleRemoveImage,
@@ -33,10 +34,10 @@ const MCQ = ({
   };
 
   const renderQuestions = () => {
-    debugger
+    
     return Questions.filter(q => q.type === "Mcq").map((question, index) => (
       <div key={index} className="question-item">
-        <h3>Question {index + 1}</h3>
+        <h3>Question {question.questionNumber}</h3>
 
         {/* Question Image Section */}
         <div className="question-image-container">

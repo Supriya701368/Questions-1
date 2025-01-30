@@ -37,7 +37,7 @@ const MSQ = ({
   const renderQuestions = () => {
     return Questions.filter(q => q.type === "Msq").map((question, index) => (
       <div key={index} className="question-item">
-        <h3>Question {index + 1}</h3>
+        <h3>Question {question.questionNumber}</h3>
 
         {/* Question Image Section */}
         <div className="question-image-container">
