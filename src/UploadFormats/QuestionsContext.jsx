@@ -18,6 +18,7 @@ export const QuestionsProvider = ({ children }) => {
   const incrementCounter = () => {
     setindexCount(prev => prev + 1);
   };
+  
   return (
     <QuestionsContext.Provider value={{
       Paragraphs, setParagraphs,

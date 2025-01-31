@@ -2,93 +2,118 @@ import { useState, useContext } from 'react';
 import './Questions.css'; // Import the CSS file
 import { QuestionsContext } from './QuestionsContext';
 
-const NIT = ({
-  handleRemoveImage,
-  removeQuestion,
-  includeSolution,
-}) => {
+const NIT = ({  removeQuestion, includeSolution }) => {
   const { Questions, setQuestions } = useContext(QuestionsContext);
   const [clickedBox, setClickedBox] = useState(null); // Track the clicked box
 
   const handleClickBox = (boxName) => {
-    // Only update clickedBox if a different box is clicked
     if (clickedBox !== boxName) {
       setClickedBox(boxName);
     }
   };
 
+  // Handle Answer Input (Restrict Alphabets, Allow Numbers with Comma Separation)
   const handleAnswerChange = (index, newAnswer) => {
-    const validAnswer = newAnswer.replace(/[A-Za-z]/g, '');  // This removes alphabets
-    
+    const validAnswer = newAnswer.replace(/[^0-9,]/g, ''); // Allow only numbers and commas
+
     if (newAnswer !== validAnswer) {
-      console.error('Invalid input: Alphabets are not allowed for "Nit" question type');
-      alert('Invalid input: Alphabets are not allowed for "Nit" question type');
-      return; // Exit early if the input is invalid
+      alert('Invalid input: Only numbers and commas are allowed.');
+      return;
     }
-    
-    newAnswer = validAnswer; // Update the newAnswer to keep only valid characters
-    
-    setQuestions(prev => {
+
+    setQuestions((prev) => {
       const updated = [...prev];
-      updated[index].answer = newAnswer;
+      updated[index].answer = validAnswer;
       return updated;
     });
   };
 
-  const handlePasteImage = (e, type, index) => {
+  // Handle Image Paste
+  const handlePasteImage = (e, type, index, optionIndex = null) => {
     e.preventDefault();
     const clipboardItems = e.clipboardData.items;
-    for (let item of clipboardItems) {
-      if (item.type.startsWith("image/")) {
+  
+    for (let i = 0; i < clipboardItems.length; i++) {
+      const item = clipboardItems[i];
+  
+      if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
         const reader = new FileReader();
-        reader.onload = () => {
-          setQuestions(prev => {
+  
+        reader.onload = (event) => {
+          setQuestions((prev) => {
             const updated = [...prev];
-            if (type === "question") {
-              updated[index].questionImage = reader.result;
-            } else if (type === "solution") {
-              updated[index].solutionImage = reader.result;
+  
+            if (type === 'question') {
+              updated[index].questionImage = event.target.result;
+            } else if (type === 'solution') {
+              updated[index].solutionImage = event.target.result;
+            } else if (type === 'option' && optionIndex !== null) {
+              updated[index].options[optionIndex] = event.target.result;
             }
+  
             return updated;
           });
         };
+  
         reader.readAsDataURL(file);
-        break;
+        return; // Exit loop after handling first image
       }
     }
+  
+    alert("No image found in clipboard. Please copy an image first.");
+  };
+  
+
+  // Handle Removing Images
+  const handleRemoveImage = (index, type, optionIndex = null) => {
+    setQuestions((prev) => {
+      const updated = [...prev];
+
+      if (type === 'question') {
+        updated[index].questionImage = null;
+      } else if (type === 'solution') {
+        updated[index].solutionImage = null;
+      } else if (type === 'option' && optionIndex !== null) {
+        updated[index].options[optionIndex] = null;
+      }
+
+      return updated;
+    });
   };
 
+  // Render Questions
   const renderQuestions = () => {
-    return Questions.filter(q => q.type === "Nit").map((question, index) => (
+    return Questions.filter((q) => q.type === 'Nit').map((question, index) => (
       <div key={index} className="question-item">
-        <h3>NIT Question  {question.questionNumber}</h3>
+        <h3>NIT Question {question.questionNumber}</h3>
 
         {/* Question Image Section */}
         <div className="question-image-container">
           <h3>Paste Image for Question</h3>
           <div
-            className={`option box ${clickedBox === `question-${index}` ? 'clicked' : ''}`}
+            className={`option-box ${clickedBox === `question-${index}` ? 'clicked' : ''}`}
             onClick={() => handleClickBox(`question-${index}`)}
-            onPaste={(e) => handlePasteImage(e, "question", index)}
+            onPaste={(e) => handlePasteImage(e, 'question', index)}
             aria-label="Paste your question image here"
           >
             {question.questionImage ? (
               <>
-                <img 
-                  src={question.questionImage} 
-                  alt={`Question ${index + 1}`} 
-                  style={{ maxWidth: "100%", border: '2px solid #ccc', padding: '5px' }} 
+                <img
+                  src={question.questionImage}
+                  alt={`Question ${index + 1}`}
+                  style={{ maxWidth: '100%', border: '2px solid #ccc', padding: '5px' }}
                 />
-                <button 
-                  onClick={() => handleRemoveImage(index, "question")} 
-                  className="remove-button" 
-                  aria-label="Remove question image"
+                <button
+                  onClick={() => handleRemoveImage(index, 'question')}
+                  className="remove-button"
                 >
                   Remove
                 </button>
               </>
-            ) : "Paste your question image here (Ctrl+V)"}
+            ) : (
+              'Paste your question image here (Ctrl+V)'
+            )}
           </div>
         </div>
 
@@ -99,25 +124,26 @@ const NIT = ({
             <div
               className={`option-box ${clickedBox === `solution-${index}` ? 'clicked' : ''}`}
               onClick={() => handleClickBox(`solution-${index}`)}
-              onPaste={(e) => handlePasteImage(e, "solution", index)}
+              onPaste={(e) => handlePasteImage(e, 'solution', index)}
               aria-label="Paste your solution image here"
             >
               {question.solutionImage ? (
                 <>
-                  <img 
-                    src={question.solutionImage} 
-                    alt={`Solution ${index + 1}`} 
-                    style={{ maxWidth: '100%', border: '2px solid #ccc', padding: '5px' }} 
+                  <img
+                    src={question.solutionImage}
+                    alt={`Solution ${index + 1}`}
+                    style={{ maxWidth: '100%', border: '2px solid #ccc', padding: '5px' }}
                   />
-                  <button 
-                    onClick={() => handleRemoveImage(index, "solution")} 
-                    className="remove-button" 
-                    aria-label="Remove solution image"
+                  <button
+                    onClick={() => handleRemoveImage(index, 'solution')}
+                    className="remove-button"
                   >
                     Remove
                   </button>
                 </>
-              ) : "Paste your solution image here (Ctrl+V)"}
+              ) : (
+                'Paste your solution image here (Ctrl+V)'
+              )}
             </div>
           </div>
         )}
@@ -130,10 +156,11 @@ const NIT = ({
             onChange={(e) => handleAnswerChange(index, e.target.value)}
             value={question.answer}
             className="answer-input"
+            placeholder="Enter answers separated by commas"
           />
-          <button 
-            onClick={() => removeQuestion(index)} 
-            className="remove-button" 
+          <button
+            onClick={() => removeQuestion(index)}
+            className="remove-button"
             aria-label="Remove previous question"
           >
             Remove Previous Question
@@ -146,7 +173,7 @@ const NIT = ({
   return (
     <div className="nit-container">
       <div className="question-wrapper">
-        {Questions.filter(q => q.type === "Nit").length > 0 ? renderQuestions() : <p>Loading questions...</p>}
+        {Questions.filter((q) => q.type === 'Nit').length > 0 ? renderQuestions() : <p>Loading questions...</p>}
       </div>
     </div>
   );

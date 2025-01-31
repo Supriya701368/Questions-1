@@ -3,7 +3,7 @@ import './Questions.css'; // Import the CSS file
 import { QuestionsContext } from './QuestionsContext';
 
 const TRUE = ({
-  handleRemoveImage,
+
   removeQuestion,
   includeSolution,
 }) => {
@@ -28,12 +28,15 @@ const TRUE = ({
   const handlePasteImage = (e, type, index) => {
     e.preventDefault();
     const clipboardItems = e.clipboardData.items;
+  
+  
     for (let item of clipboardItems) {
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
         const reader = new FileReader();
+  
         reader.onload = () => {
-          setQuestions(prev => {
+          setQuestions((prev) => {
             const updated = [...prev];
             if (type === "question") {
               updated[index].questionImage = reader.result;
@@ -43,12 +46,26 @@ const TRUE = ({
             return updated;
           });
         };
+  
         reader.readAsDataURL(file);
-        break;
+        return;
       }
     }
+  
+    alert("No image found in clipboard. Please copy an image first.");
   };
-
+  const handleRemoveImage = (index, type) => {
+    setQuestions(prev => {
+      const updated = [...prev];
+      if (type === "question") {
+        updated[index].questionImage = null;
+      } else if (type === "solution") {
+        updated[index].solutionImage = null;
+      }
+      return updated;
+    });
+  };
+  
   const renderQuestions = () => {
     return Questions.filter(q => q.type === "True").map((question, index) => (
       <div key={index} className="question-item">

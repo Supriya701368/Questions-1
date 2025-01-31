@@ -6,8 +6,6 @@ const ParagraphCreation = ({ includeSolution }) => {
     const { Paragraphs, setParagraphs} = useContext(QuestionsContext);
     const [numberOfQuestions, setNumberOfQuestions] = useState('');
     const [clickedBox, setClickedBox] = useState(null);
-
-    // Helper function to handle image paste logic
     const handleImagePaste = (e, questionIndex, optionIndex = null, isSolution = false, isParagraph = false) => {
         const clipboardItems = e.clipboardData.items;
 
@@ -165,9 +163,10 @@ const ParagraphCreation = ({ includeSolution }) => {
             <div className="mcq-container">
                 <div className="question-wrapper">
                     {/* Paragraph Image Section */}
+                    <h3>Paragraph 1</h3>
                     {numberOfQuestions > 0 && (
                         <div className="paragraph-image-container">
-                            <h3>Paragraph</h3>
+                            
                             <h3>Paste Image for Paragraph</h3>
                             <div
                                 className={`option box ${clickedBox === 'paragraph-image' ? 'clicked' : ''}`}

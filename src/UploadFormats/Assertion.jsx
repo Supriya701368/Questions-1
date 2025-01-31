@@ -4,7 +4,6 @@ import ParagraphCreation from "./ParagraphCreation";
 import { QuestionsContext } from './QuestionsContext';
 
 const Assertion = ({
-  handleRemoveImage,
   removeQuestion,
   includeSolution,
 }) => {
@@ -15,15 +14,15 @@ const Assertion = ({
     setClickedBox(boxName);
   };
 
+  // Function to handle pasting of image for assertion, reason, options, and solution
   const handlePasteImage = (e, type, index, optionIndex = null) => {
-    console.log("Paste event triggered");
+    e.preventDefault();
     const clipboardItems = e.clipboardData.items;
     for (let i = 0; i < clipboardItems.length; i++) {
       if (clipboardItems[i].type.startsWith("image/")) {
         const file = clipboardItems[i].getAsFile();
         const reader = new FileReader();
         reader.onload = () => {
-          console.log("Image loaded from clipboard");
           setQuestions((prevQuestions) => {
             const updatedQuestions = [...prevQuestions];
             if (type === "assertion") {
@@ -44,10 +43,28 @@ const Assertion = ({
     }
   };
 
-  const handleAnswerChange = (index, newAnswer) => {
+  // Function to handle answer changes (A, B, C, D)
+  const handleAnswerChange = (index, optionIndex) => {
     setQuestions(prev => {
       const updated = [...prev];
-      updated[index].answer = String.fromCharCode(65 + newAnswer);
+      updated[index].answer = String.fromCharCode(65 + optionIndex); // Sets answer as A, B, C, or D
+      return updated;
+    });
+  };
+
+  // Function to remove the image of a specific section
+  const handleRemoveImage = (index, type, optionIndex = null) => {
+    setQuestions(prev => {
+      const updated = [...prev];
+      if (type === "assertion") {
+        updated[index].assertionImage = null;
+      } else if (type === "reason") {
+        updated[index].reasonImage = null;
+      } else if (type === "option") {
+        updated[index].options[optionIndex].image = null;
+      } else if (type === "solution") {
+        updated[index].solutionImage = null;
+      }
       return updated;
     });
   };
