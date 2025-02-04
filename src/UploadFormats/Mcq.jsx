@@ -7,11 +7,10 @@ const MCQ = ({
   handleOptionPaste,
   handlePaste,
   handleRemoveImage,
-  removeQuestion,
   includeSolution,
   addOptionE,
 }) => {
-  const { Questions, setQuestions } = useContext(QuestionsContext);
+  const { mcqQuestions, setQuestions } = useContext(QuestionsContext); // Use mcqQuestions instead of Questions
   const [clickedBox, setClickedBox] = useState(null); // Track the clicked box
 
   const handleClickBox = (boxName) => {
@@ -32,10 +31,14 @@ const MCQ = ({
       return updated;
     });
   };
-
+  const removeQuestion = (index) => {
+    setQuestions(prev => {
+      const updatedQuestions = prev.filter((_, i) => i !== index);
+      return updatedQuestions;
+    });
+  };
   const renderQuestions = () => {
-    
-    return Questions.filter(q => q.type === "Mcq").map((question, index) => (
+    return mcqQuestions.filter(q => q.type === "Mcq").map((question, index) => (
       <div key={index} className="question-item">
         <h3>Question {question.questionNumber}</h3>
 
@@ -214,7 +217,7 @@ const MCQ = ({
   return (
     <div className="mcq-container">
       <div className="question-wrapper">
-        {Questions.filter(q => q.type === "Mcq").length > 0 ? renderQuestions() : <p>Loading questions...</p>}
+        {mcqQuestions.filter(q => q.type === "Mcq").length > 0 ? renderQuestions() : <p>Loading questions...</p>}
       </div>
     </div>
   );

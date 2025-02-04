@@ -1,28 +1,33 @@
 import { useState, useContext } from 'react';
 import './Questions.css'; // Import the CSS file
-import ParagraphCreation from "./ParagraphCreation";
 import { QuestionsContext } from './QuestionsContext';
 
 const Assertion = ({
-  removeQuestion,
   includeSolution,
 }) => {
+  const { setQuestions, assertionQuestions } = useContext(QuestionsContext);
   const [clickedBox, setClickedBox] = useState(null); // Track the clicked box
-  const { Questions, setQuestions } = useContext(QuestionsContext);
 
   const handleClickBox = (boxName) => {
     setClickedBox(boxName);
   };
-
+  const removeQuestion = (index) => {
+    setQuestions(prev => {
+      const updatedQuestions = prev.filter((_, i) => i !== index);
+      return updatedQuestions;
+    });
+  };
   // Function to handle pasting of image for assertion, reason, options, and solution
   const handlePasteImage = (e, type, index, optionIndex = null) => {
     e.preventDefault();
     const clipboardItems = e.clipboardData.items;
     for (let i = 0; i < clipboardItems.length; i++) {
+      console.log('Clipboard item:', clipboardItems[i]); // Debugging log
       if (clipboardItems[i].type.startsWith("image/")) {
         const file = clipboardItems[i].getAsFile();
         const reader = new FileReader();
         reader.onload = () => {
+          console.log('Image loaded:', reader.result); // Debugging log
           setQuestions((prevQuestions) => {
             const updatedQuestions = [...prevQuestions];
             if (type === "assertion") {
@@ -39,6 +44,8 @@ const Assertion = ({
         };
         reader.readAsDataURL(file);
         break;
+      } else {
+        console.log('Not an image:', clipboardItems[i].type); // Debugging log
       }
     }
   };
@@ -69,10 +76,12 @@ const Assertion = ({
     });
   };
 
+ 
+
   const renderQuestions = () => {
-    return Questions.map((question, index) => (
+    return assertionQuestions.filter(q => q.type === "Assertion").map((question, index) => (
       <div key={index} className="question-item">
-        <h3>Assertion Question  {question.questionNumber}</h3>
+        <h3>Assertion Question {question.questionNumber}</h3>
 
         {/* Assertion Image Section */}
         <div className="question-image-container">
@@ -207,7 +216,7 @@ const Assertion = ({
           <input
             type="text"
             value={question.answer}
-            onChange={(e) => handleAnswerChange(index, e.target.value)}
+            readOnly
             className="answer-input"
           />
         </div>
@@ -227,7 +236,7 @@ const Assertion = ({
   return (
     <div className="mcq-container">
       <div className="question-wrapper">
-        {Questions.length > 0 ? renderQuestions() : ""}
+        {assertionQuestions.length > 0 ? renderQuestions() : <p>Loading questions...</p>}
       </div>
     </div>
   );

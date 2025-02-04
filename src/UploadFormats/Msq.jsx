@@ -3,10 +3,14 @@ import './Questions.css'; // Import the CSS file
 import { QuestionsContext } from './QuestionsContext';
 
 const MSQ = ({
+  indexCount,
+  handleOptionPaste,
+  handlePaste,
+  handleRemoveImage,
   includeSolution,
   addOptionE,
 }) => {
-  const { Questions, setQuestions } = useContext(QuestionsContext);
+  const { msqQuestions, setQuestions } = useContext(QuestionsContext); // Use mcqQuestions instead of Questions
   const [clickedBox, setClickedBox] = useState(null); // Track the clicked box
 
   const handleClickBox = (boxName) => {
@@ -15,16 +19,21 @@ const MSQ = ({
       setClickedBox(boxName);
     }
   };
-
+  const removeQuestion = (index) => {
+    setQuestions(prev => {
+      const updatedQuestions = prev.filter((_, i) => i !== index);
+      return updatedQuestions;
+    });
+  };
   const handleAnswerChange = (index, optionIndex, isChecked) => {
     setQuestions(prev => {
       const updated = [...prev];
       const optionLetter = String.fromCharCode(65 + optionIndex); // A, B, C, D, etc.
-  
+      
       if (isChecked) {
         if (!updated[index].answer.includes(optionLetter)) {
-          updated[index].answer = updated[index].answer 
-            ? `${updated[index].answer}, ${optionLetter}` 
+          updated[index].answer = updated[index].answer
+            ? `${updated[index].answer}, ${optionLetter}`
             : optionLetter;
         }
       } else {
@@ -37,72 +46,9 @@ const MSQ = ({
       return updated;
     });
   };
-  const handlePaste = (e, index) => {
-    e.preventDefault();
-    const clipboardItems = e.clipboardData.items;
-  
-    for (let item of clipboardItems) {
-      if (item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        const reader = new FileReader();
-        
-        reader.onload = () => {
-          setQuestions(prev => {
-            const updated = [...prev];
-            updated[index].solutionImage = reader.result; // Save base64 image
-            return updated;
-          });
-        };
-        
-        reader.readAsDataURL(file);
-        break;
-      }
-    }
-  };
-  const removeQuestion = (index) => {
-    setQuestions(prev => prev.filter((_, i) => i !== index));
-  };
-  
-  const handleOptionPaste = (e, index, optionIndex) => {
-    e.preventDefault();
-    const clipboardItems = e.clipboardData.items;
-  
-    for (let item of clipboardItems) {
-      if (item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        const reader = new FileReader();
-        
-        reader.onload = () => {
-          setQuestions(prev => {
-            const updated = [...prev];
-            updated[index].options[optionIndex].image = reader.result; // Store image
-            return updated;
-          });
-        };
-        
-        reader.readAsDataURL(file);
-        break;
-      }
-    }
-  };
-const handleRemoveImage = (index, type, optionIndex = null) => {
-  setQuestions(prev => {
-    const updated = [...prev];
-    
-    if (type === "question") {
-      updated[index].questionImage = null; // Remove question image
-    } else if (type === "solution") {
-      updated[index].solutionImage = null; // Remove solution image
-    } else if (type === "option" && optionIndex !== null) {
-      updated[index].options[optionIndex].image = null; // Remove option image
-    }
-    
-    return updated;
-  });
-};
   
   const renderQuestions = () => {
-    return Questions.filter(q => q.type === "Msq").map((question, index) => (
+    return msqQuestions.filter(q => q.type === "Msq").map((question, index) => (
       <div key={index} className="question-item">
         <h3>Question {question.questionNumber}</h3>
 
@@ -279,9 +225,9 @@ const handleRemoveImage = (index, type, optionIndex = null) => {
   };
 
   return (
-    <div className="msq-container">
+    <div className="mcq-container">
       <div className="question-wrapper">
-        {Questions.filter(q => q.type === "Msq").length > 0 ? renderQuestions() : <p>Loading questions...</p>}
+        {msqQuestions.filter(q => q.type === "Msq").length > 0 ? renderQuestions() : <p>Loading questions...</p>}
       </div>
     </div>
   );

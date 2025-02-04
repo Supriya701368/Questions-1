@@ -3,11 +3,9 @@ import './Questions.css'; // Import the CSS file
 import { QuestionsContext } from './QuestionsContext';
 
 const TRUE = ({
-
-  removeQuestion,
   includeSolution,
 }) => {
-  const { Questions, setQuestions } = useContext(QuestionsContext);
+  const { setQuestions, trueQuestions } = useContext(QuestionsContext);
   const [clickedBox, setClickedBox] = useState(null); // Track the clicked box
 
   const handleClickBox = (boxName) => {
@@ -16,7 +14,12 @@ const TRUE = ({
       setClickedBox(boxName);
     }
   };
-
+  const removeQuestion = (index) => {
+    setQuestions(prev => {
+      const updatedQuestions = prev.filter((_, i) => i !== index);
+      return updatedQuestions;
+    });
+  };
   const handleAnswerChange = (index, newAnswer) => {
     setQuestions(prev => {
       const updated = [...prev];
@@ -28,14 +31,16 @@ const TRUE = ({
   const handlePasteImage = (e, type, index) => {
     e.preventDefault();
     const clipboardItems = e.clipboardData.items;
-  
-  
+
     for (let item of clipboardItems) {
+      console.log('Clipboard item:', item); // Debugging log
+
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
         const reader = new FileReader();
-  
+
         reader.onload = () => {
+          console.log('Image loaded:', reader.result); // Debugging log
           setQuestions((prev) => {
             const updated = [...prev];
             if (type === "question") {
@@ -46,14 +51,17 @@ const TRUE = ({
             return updated;
           });
         };
-  
+
         reader.readAsDataURL(file);
-        return;
+        return; // Exit after handling the first image
+      } else {
+        console.log('Not an image:', item.type); // Debugging log
       }
     }
-  
+
     alert("No image found in clipboard. Please copy an image first.");
   };
+
   const handleRemoveImage = (index, type) => {
     setQuestions(prev => {
       const updated = [...prev];
@@ -65,9 +73,9 @@ const TRUE = ({
       return updated;
     });
   };
-  
+
   const renderQuestions = () => {
-    return Questions.filter(q => q.type === "True").map((question, index) => (
+    return trueQuestions.filter(q => q.type === "True").map((question, index) => (
       <div key={index} className="question-item">
         <h3>TRUE Question {question.questionNumber}</h3>
 
@@ -177,7 +185,7 @@ const TRUE = ({
   return (
     <div className="true-container">
       <div className="question-wrapper">
-        {Questions.filter(q => q.type === "True").length > 0 ? renderQuestions() : <p>Loading questions...</p>}
+        {trueQuestions.length > 0 ? renderQuestions() : <p>Loading questions...</p>}
       </div>
     </div>
   );

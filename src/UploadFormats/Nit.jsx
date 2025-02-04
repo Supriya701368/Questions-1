@@ -2,10 +2,15 @@ import { useState, useContext } from 'react';
 import './Questions.css'; // Import the CSS file
 import { QuestionsContext } from './QuestionsContext';
 
-const NIT = ({  removeQuestion, includeSolution }) => {
-  const { Questions, setQuestions } = useContext(QuestionsContext);
+const NIT = ({ includeSolution }) => {
+  const { setQuestions, nitQuestions } = useContext(QuestionsContext);
   const [clickedBox, setClickedBox] = useState(null); // Track the clicked box
-
+  const removeQuestion = (index) => {
+    setQuestions(prev => {
+      const updatedQuestions = prev.filter((_, i) => i !== index);
+      return updatedQuestions;
+    });
+  };
   const handleClickBox = (boxName) => {
     if (clickedBox !== boxName) {
       setClickedBox(boxName);
@@ -32,38 +37,41 @@ const NIT = ({  removeQuestion, includeSolution }) => {
   const handlePasteImage = (e, type, index, optionIndex = null) => {
     e.preventDefault();
     const clipboardItems = e.clipboardData.items;
-  
+
     for (let i = 0; i < clipboardItems.length; i++) {
       const item = clipboardItems[i];
-  
+      console.log('Clipboard item:', item); // Debugging log
+
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
         const reader = new FileReader();
-  
+
         reader.onload = (event) => {
+          console.log('Image loaded:', event.target.result); // Debugging log
           setQuestions((prev) => {
             const updated = [...prev];
-  
+
             if (type === 'question') {
               updated[index].questionImage = event.target.result;
             } else if (type === 'solution') {
               updated[index].solutionImage = event.target.result;
             } else if (type === 'option' && optionIndex !== null) {
-              updated[index].options[optionIndex] = event.target.result;
+              updated[index].options[optionIndex].image = event.target.result;
             }
-  
+
             return updated;
           });
         };
-  
+
         reader.readAsDataURL(file);
         return; // Exit loop after handling first image
+      } else {
+        console.log('Not an image:', item.type); // Debugging log
       }
     }
-  
+
     alert("No image found in clipboard. Please copy an image first.");
   };
-  
 
   // Handle Removing Images
   const handleRemoveImage = (index, type, optionIndex = null) => {
@@ -75,16 +83,17 @@ const NIT = ({  removeQuestion, includeSolution }) => {
       } else if (type === 'solution') {
         updated[index].solutionImage = null;
       } else if (type === 'option' && optionIndex !== null) {
-        updated[index].options[optionIndex] = null;
+        updated[index].options[optionIndex].image = null;
       }
 
       return updated;
     });
   };
 
+
   // Render Questions
   const renderQuestions = () => {
-    return Questions.filter((q) => q.type === 'Nit').map((question, index) => (
+    return nitQuestions.filter((q) => q.type === 'Nit').map((question, index) => (
       <div key={index} className="question-item">
         <h3>NIT Question {question.questionNumber}</h3>
 
@@ -173,7 +182,7 @@ const NIT = ({  removeQuestion, includeSolution }) => {
   return (
     <div className="nit-container">
       <div className="question-wrapper">
-        {Questions.filter((q) => q.type === 'Nit').length > 0 ? renderQuestions() : <p>Loading questions...</p>}
+        {nitQuestions.length > 0 ? renderQuestions() : <p>Loading questions...</p>}
       </div>
     </div>
   );
